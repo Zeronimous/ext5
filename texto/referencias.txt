@@ -1,0 +1,4 @@
+quests_1|ingles/quests.txt|First Quest
+quests_2|ingles/quests.txt|Second Quest
+achievements_1|ingles/achievements.txt|The Fool
+achievements_2|ingles/achievements.txt|The Magician
