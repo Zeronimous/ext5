@@ -70,8 +70,8 @@ for ref in referencias:
 
         # Construir los patrones de búsqueda y reemplazo
         # "English":"Original" -> "English":"Traducido"
-        patron_busqueda = f'\\"English\\":\\"{texto_original}\\"'
-        patron_reemplazo = f'\\"English\\":\\"{texto_traducido}\\"'
+        patron_busqueda = f'"English":"{texto_original}"'
+        patron_reemplazo = f'"English":"{texto_traducido}"'
 
         # Realizar el reemplazo en el contenido del archivo
         file_contents[filepath] = file_contents[filepath].replace(patron_busqueda, patron_reemplazo)

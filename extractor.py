@@ -19,9 +19,9 @@ extracciones = []
 referencias = []
 id_counter = 1
 
-# Expresión regular para buscar \"English\":\"...\"
-# Captura el contenido entre las comillas escapadas
-regex = re.compile(r'\\"English\\":\\"(.*?)\\"')
+# Expresión regular para buscar "English":"..."
+# Captura el contenido entre las comillas
+regex = re.compile(r'"English":"(.*?)"')
 
 # Procesar cada archivo en el directorio 'ingles'
 for filename in os.listdir(dir_ingles):
