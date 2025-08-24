@@ -1,0 +1,13 @@
+0 TextAsset Base
+ 1 string m_Name = "casos_complejos_des"
+ 1 string m_Script = "﻿{\"Data\":[\r\n
+ {"ID":"complejo_1","English":"The pipes <T>under the wire mesh</T> aren't too close together."},\r\n
+ {"ID":"complejo_2","English":"<A>{i}... Rattle... rumble... screech...{/i}</A>"},\r\n
+ {"ID":"complejo_3","English":"{sigh1}"},\r\n
+ {"ID":"complejo_4","English":"Upgrade to {p1} compartments."},\r\n
+ {"ID":"complejo_5","English":"This is <B>bold</B> and this is <i>italic</i>."},\r\n
+ {"ID":"complejo_6","English":"<P>This is a paragraph.</P>"},\r\n
+ {"ID":"complejo_7","English":"A sentence with a {p2} variable."},\r\n
+ {"ID":"complejo_8","English":"This text is <color=#ff003c>red</color>."},\r\n
+ {"ID":"complejo_9","English":"This is a lone brace {think1} in a sentence."}
+ ]}"

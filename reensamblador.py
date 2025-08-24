@@ -1,98 +1,101 @@
 import os
 import csv
+from collections import defaultdict
 
-# Directorios
-dir_texto = 'texto'
-dir_traducido = 'traducido'
+# --- CONFIGURACIÓN ---
+DIR_TEXTO = 'texto'
+DIR_TRADUCIDO = 'traducido'
+ARCHIVO_CSV_TRADUCIDO = os.path.join(DIR_TEXTO, 'traducciones.csv')
+ARCHIVO_REFERENCIAS = os.path.join(DIR_TEXTO, 'referencias.txt')
+# --- FIN DE CONFIGURACIÓN ---
 
-# Archivos de entrada
-# El usuario deberá renombrar su archivo traducido a 'traducciones.csv'
-# o modificar este nombre de archivo.
-archivo_csv_traducido = os.path.join(dir_texto, 'traducciones.csv')
-archivo_referencias = os.path.join(dir_texto, 'referencias.txt')
-
-# Crear el directorio de salida si no existe
-if not os.path.exists(dir_traducido):
-    os.makedirs(dir_traducido)
-
-# 1. Cargar las traducciones desde el CSV
-traducciones = {}
-try:
-    with open(archivo_csv_traducido, 'r', newline='', encoding='utf-8') as f:
-        reader = csv.reader(f)
-        next(reader) # Omitir la cabecera
-        # Asumimos que el formato es ID,Texto Original,Texto Traducido
-        # Si el usuario solo edita la segunda columna, ajustamos aquí
-        for row in reader:
-            if len(row) >= 2:
-                id_tr, texto_traducido = row[0], row[1]
-                traducciones[id_tr] = texto_traducido
-            # Si el usuario añade una tercera columna con la traducción
-            if len(row) >= 3 and row[2]:
-                 id_tr, texto_traducido = row[0], row[2]
-                 traducciones[id_tr] = texto_traducido
-
-except FileNotFoundError:
-    print(f"Error: No se encontró el archivo de traducciones '{archivo_csv_traducido}'.")
-    print("Asegúrese de haber guardado sus traducciones en ese archivo.")
-    exit()
-except Exception as e:
-    print(f"Error leyendo el archivo CSV: {e}")
-    exit()
-
-
-# 2. Leer las referencias y procesar los archivos
-try:
-    with open(archivo_referencias, 'r', encoding='utf-8') as f:
-        referencias = f.readlines()
-except FileNotFoundError:
-    print(f"Error: No se encontró el archivo de referencias '{archivo_referencias}'.")
-    print("Asegúrese de haber ejecutado primero 'extractor.py'.")
-    exit()
-except Exception as e:
-    print(f"Error leyendo el archivo de referencias: {e}")
-    exit()
-
-# Almacenar el contenido de los archivos para no leerlos múltiples veces
-file_contents = {}
-
-for ref in referencias:
+def cargar_traducciones(archivo_csv):
+    """Carga las traducciones del CSV y las agrupa por ID base."""
+    traducciones_agrupadas = defaultdict(lambda: {'original': [], 'traducido': []})
     try:
-        id_ref, filepath, texto_original = ref.strip().split('|', 2)
-
-        # Si el contenido del archivo aún no se ha leído
-        if filepath not in file_contents:
-            with open(filepath, 'r', encoding='utf-8-sig') as f_orig:
-                file_contents[filepath] = f_orig.read()
-
-        # Obtener la traducción, si no existe, usar el original
-        texto_traducido = traducciones.get(id_ref, texto_original)
-
-        # Construir los patrones de búsqueda y reemplazo
-        # "English":"Original" -> "English":"Traducido"
-        patron_busqueda = f'"English":"{texto_original}"'
-        patron_reemplazo = f'"English":"{texto_traducido}"'
-
-        # Realizar el reemplazo en el contenido del archivo
-        file_contents[filepath] = file_contents[filepath].replace(patron_busqueda, patron_reemplazo)
-
-    except ValueError:
-        print(f"Advertencia: Omitiendo línea mal formada en referencias: {ref.strip()}")
+        with open(archivo_csv, 'r', newline='', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            next(reader)  # Omitir cabecera
+            for row in reader:
+                if not row: continue
+                id_completo, texto_original = row[0], row[1]
+                texto_traducido = texto_original
+                if len(row) > 2 and row[2]:
+                    texto_traducido = row[2]
+                id_base = "_".join(id_completo.split('_')[:-1])
+                traducciones_agrupadas[id_base]['original'].append(texto_original)
+                traducciones_agrupadas[id_base]['traducido'].append(texto_traducido)
     except FileNotFoundError:
-        print(f"Advertencia: No se encontró el archivo original '{filepath}' mencionado en las referencias.")
+        print(f"Error: No se encontró el archivo de traducciones '{archivo_csv}'.")
+        return None
     except Exception as e:
-        print(f"Error procesando la referencia '{ref.strip()}': {e}")
+        print(f"Error leyendo el archivo CSV: {e}")
+        return None
+    return traducciones_agrupadas
 
+def reconstruir_bloque(plantilla, partes):
+    """Reconstruye el bloque completo reemplazando los marcadores ##n## con las partes de texto."""
+    bloque_reconstruido = plantilla
+    for i, parte in enumerate(partes):
+        placeholder = f"##{i}##"
+        bloque_reconstruido = bloque_reconstruido.replace(placeholder, parte)
+    return bloque_reconstruido
 
-# 3. Escribir los nuevos archivos traducidos
-for filepath, content in file_contents.items():
+def main():
+    if not os.path.exists(DIR_TRADUCIDO):
+        os.makedirs(DIR_TRADUCIDO)
+
+    traducciones = cargar_traducciones(ARCHIVO_CSV_TRADUCIDO)
+    if traducciones is None:
+        return
+
     try:
-        # Crear el subdirectorio si es necesario (aunque en este caso no lo es)
-        output_filename = os.path.basename(filepath)
-        output_path = os.path.join(dir_traducido, output_filename)
+        with open(ARCHIVO_REFERENCIAS, 'r', encoding='utf-8') as f:
+            referencias = f.readlines()
+    except FileNotFoundError:
+        print(f"Error: No se encontró el archivo de referencias '{ARCHIVO_REFERENCIAS}'.")
+        return
 
-        with open(output_path, 'w', encoding='utf-8-sig') as f_out:
-            f_out.write(content)
-        print(f"Archivo traducido '{output_path}' creado con éxito.")
-    except Exception as e:
-        print(f"Error escribiendo el archivo traducido para '{filepath}': {e}")
+    contenidos_archivos = {}
+
+    for ref in referencias:
+        try:
+            id_base, filepath, plantilla_bloque = ref.strip().split('|', 2)
+
+            if filepath not in contenidos_archivos:
+                with open(filepath, 'r', encoding='utf-8-sig') as f_orig:
+                    contenidos_archivos[filepath] = f_orig.read()
+
+            datos_traduccion = traducciones.get(id_base)
+
+            if not datos_traduccion or not datos_traduccion['original']:
+                continue
+
+            # La plantilla ahora es el bloque completo (ej: "English":"##0##")
+            # Reconstruimos el bloque original y el traducido
+            bloque_original = reconstruir_bloque(plantilla_bloque, datos_traduccion['original'])
+            bloque_traducido = reconstruir_bloque(plantilla_bloque, datos_traduccion['traducido'])
+
+            # El reemplazo es ahora directo, del bloque original al bloque traducido
+            if bloque_original in contenidos_archivos[filepath]:
+                 contenidos_archivos[filepath] = contenidos_archivos[filepath].replace(bloque_original, bloque_traducido, 1)
+            else:
+                print(f"Advertencia: No se encontró el bloque de texto original para '{id_base}' en el archivo '{filepath}'.")
+
+        except ValueError:
+            print(f"Advertencia: Omitiendo línea mal formada en referencias: {ref.strip()}")
+        except Exception as e:
+            print(f"Error procesando la referencia '{ref.strip()}': {e}")
+
+    for filepath, content in contenidos_archivos.items():
+        try:
+            output_filename = os.path.basename(filepath)
+            output_path = os.path.join(DIR_TRADUCIDO, output_filename)
+            with open(output_path, 'w', encoding='utf-8-sig') as f_out:
+                f_out.write(content)
+            print(f"Archivo traducido '{output_path}' creado con éxito.")
+        except Exception as e:
+            print(f"Error escribiendo el archivo traducido para '{filepath}': {e}")
+
+if __name__ == '__main__':
+    main()

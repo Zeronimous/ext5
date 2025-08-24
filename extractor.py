@@ -2,68 +2,110 @@ import os
 import re
 import csv
 
-# Directorios de entrada y salida
-dir_ingles = 'ingles'
-dir_texto = 'texto'
+# --- CONFIGURACIÓN ---
+DIR_INGLES = 'ingles'
+DIR_TEXTO = 'texto'
+ARCHIVO_CSV = os.path.join(DIR_TEXTO, 'traducciones.csv')
+ARCHIVO_REFERENCIAS = os.path.join(DIR_TEXTO, 'referencias.txt')
 
-# Crear el directorio de salida si no existe
-if not os.path.exists(dir_texto):
-    os.makedirs(dir_texto)
+# Regex para encontrar el bloque completo de "English", escapado o no, y capturar el contenido interior.
+# Grupo 1: Bloque completo (p.ej., "English":"texto" o \"English\":\"texto\")
+# Grupo 2: Contenido interior (p.ej., texto)
+REGEX_EXTRACCION_GENERAL = re.compile(r'(\\"English\\":\\"(.*?)\\"|(?:"English":"((?:[^"]|\\")*)"))')
 
-# Archivos de salida
-archivo_csv = os.path.join(dir_texto, 'traducciones.csv')
-archivo_referencias = os.path.join(dir_texto, 'referencias.txt')
+# Regex para dividir el texto por marcadores y variables.
+MARCADORES = [
+    r'<color=#[a-fA-F0-9]{6}>', r'</color>',
+    r'</?(?:T|A|R|B|P|R2|i|W|G|Y)>',
+    r'\{/?i\}',
+    r'\{[a-zA-Z0-9_]+\}'
+]
+REGEX_DIVISION_MARCADORES = re.compile(f"({'|'.join(MARCADORES)})")
 
-# Almacenar las extracciones
-extracciones = []
-referencias = []
-id_counter = 1
+# Regex para excluir textos que son solo una variable
+REGEX_EXCLUSION_VARIABLE = re.compile(r'^\s*\{[a-zA-Z0-9_]+\}\s*$')
+# --- FIN DE CONFIGURACIÓN ---
 
-# Expresión regular para buscar "English":"..."
-# Captura el contenido entre las comillas
-regex = re.compile(r'"English":"(.*?)"')
+def procesar_texto_interior(id_base, texto_interior):
+    if REGEX_EXCLUSION_VARIABLE.match(texto_interior):
+        return [], None
 
-# Procesar cada archivo en el directorio 'ingles'
-for filename in os.listdir(dir_ingles):
-    if filename.endswith('.txt'):
-        filepath = os.path.join(dir_ingles, filename)
+    partes = REGEX_DIVISION_MARCADORES.split(texto_interior)
+    partes = [p for p in partes if p]
 
+    partes_csv = []
+    sub_plantilla_partes = []
+    contador_partes_traducibles = 0
+
+    for parte in partes:
+        if REGEX_DIVISION_MARCADORES.match(parte):
+            sub_plantilla_partes.append(parte)
+        else:
+            sub_id = f"{id_base}_{contador_partes_traducibles + 1}"
+            partes_csv.append([sub_id, parte])
+            sub_plantilla_partes.append(f"##{contador_partes_traducibles}##")
+            contador_partes_traducibles += 1
+
+    if not partes_csv:
+        return [], None
+
+    sub_plantilla_final = "".join(sub_plantilla_partes)
+    return partes_csv, sub_plantilla_final
+
+def main():
+    if not os.path.exists(DIR_TEXTO):
+        os.makedirs(DIR_TEXTO)
+
+    extracciones_csv = []
+    referencias_plantillas = []
+
+    for filename in os.listdir(DIR_INGLES):
+        if not filename.endswith('.txt'):
+            continue
+
+        filepath = os.path.join(DIR_INGLES, filename)
         try:
             with open(filepath, 'r', encoding='utf-8-sig') as f:
                 content = f.read()
 
-                # Encontrar todas las coincidencias
-                matches = regex.findall(content)
+            for i, match in enumerate(REGEX_EXTRACCION_GENERAL.finditer(content)):
+                bloque_completo = match.group(1)
+                # El contenido puede estar en el grupo 2 (escapado) o 3 (no escapado)
+                texto_interior = match.group(2) if match.group(2) is not None else match.group(3)
 
-                for i, match in enumerate(matches):
-                    # Generar un ID único
-                    unique_id = f"{os.path.splitext(filename)[0]}_{i+1}"
+                id_base = f"{os.path.splitext(filename)[0]}_{i+1}"
 
-                    # Guardar la extracción para el CSV
-                    extracciones.append([unique_id, match])
+                partes_csv, sub_plantilla = procesar_texto_interior(id_base, texto_interior)
 
-                    # Guardar la referencia para el reemplazo posterior
-                    # Formato: id|ruta_archivo|texto_original
-                    referencias.append(f"{unique_id}|{filepath}|{match}")
+                if sub_plantilla is not None:
+                    # Construir la plantilla final reemplazando el texto interior con la sub-plantilla
+                    plantilla_final = bloque_completo.replace(texto_interior, sub_plantilla, 1)
+                    extracciones_csv.extend(partes_csv)
+                    referencias_plantillas.append(f"{id_base}|{filepath}|{plantilla_final}")
+                else:
+                    # Si no hay nada que traducir, la plantilla es el bloque completo
+                    referencias_plantillas.append(f"{id_base}|{filepath}|{bloque_completo}")
 
         except Exception as e:
             print(f"Error procesando el archivo {filepath}: {e}")
 
-# Escribir el archivo CSV
-try:
-    with open(archivo_csv, 'w', newline='', encoding='utf-8') as f:
-        writer = csv.writer(f)
-        writer.writerow(['ID', 'Texto Original'])
-        writer.writerows(extracciones)
-    print(f"Archivo CSV '{archivo_csv}' creado con éxito.")
-except Exception as e:
-    print(f"Error escribiendo el archivo CSV: {e}")
+    # Escribir archivos de salida
+    try:
+        with open(ARCHIVO_CSV, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow(['ID', 'Texto Original'])
+            writer.writerows(extracciones_csv)
+        print(f"Archivo CSV '{ARCHIVO_CSV}' creado con éxito con {len(extracciones_csv)} entradas.")
+    except Exception as e:
+        print(f"Error escribiendo el archivo CSV: {e}")
 
-# Escribir el archivo de referencias
-try:
-    with open(archivo_referencias, 'w', encoding='utf-8') as f:
-        for ref in referencias:
-            f.write(ref + '\n')
-    print(f"Archivo de referencias '{archivo_referencias}' creado con éxito.")
-except Exception as e:
-    print(f"Error escribiendo el archivo de referencias: {e}")
+    try:
+        with open(ARCHIVO_REFERENCIAS, 'w', encoding='utf-8') as f:
+            for ref in referencias_plantillas:
+                f.write(ref + '\n')
+        print(f"Archivo de referencias '{ARCHIVO_REFERENCIAS}' creado con éxito.")
+    except Exception as e:
+        print(f"Error escribiendo el archivo de referencias: {e}")
+
+if __name__ == '__main__':
+    main()
