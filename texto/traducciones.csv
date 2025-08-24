@@ -1,24 +1,25 @@
-ID,Texto Original,Texto Traducido
-casos_complejos_1_1,The pipes ,The pipes _es
-casos_complejos_1_2,under the wire mesh,under the wire mesh_es
-casos_complejos_1_3, aren't too close together., aren't too close together._es
-casos_complejos_2_1,... Rattle... rumble... screech...,... Rattle... rumble... screech..._es
-casos_complejos_4_1,Upgrade to ,Upgrade to _es
-casos_complejos_4_2, compartments., compartments._es
-casos_complejos_5_1,This is ,This is _es
-casos_complejos_5_2,bold,bold_es
-casos_complejos_5_3, and this is , and this is _es
-casos_complejos_5_4,italic,italic_es
-casos_complejos_5_5,.,._es
-casos_complejos_6_1,This is a paragraph.,This is a paragraph._es
-casos_complejos_7_1,A sentence with a ,A sentence with a _es
-casos_complejos_7_2, variable., variable._es
-casos_complejos_8_1,This text is ,This text is _es
-casos_complejos_8_2,red,red_es
-casos_complejos_8_3,.,._es
-casos_complejos_9_1,This is a lone brace ,This is a lone brace _es
-casos_complejos_9_2, in a sentence., in a sentence._es
-quests_1_1,First Quest,First Quest_es
-quests_2_1,Second Quest,Second Quest_es
-achievements_1_1,The Fool,The Fool_es
-achievements_2_1,The Magician,The Magician_es
+ID,Texto Original
+casos_complejos_1_1,The pipes
+casos_complejos_1_2,under the wire mesh
+casos_complejos_1_3, aren't too close together.
+casos_complejos_2_1,... Rattle... rumble... screech...
+casos_complejos_4_1,Upgrade to
+casos_complejos_4_2, compartments.
+casos_complejos_5_1,This is
+casos_complejos_5_2,bold
+casos_complejos_5_3, and this is
+casos_complejos_5_4,italic
+casos_complejos_5_5,.
+casos_complejos_6_1,This is a paragraph.
+casos_complejos_7_1,A sentence with a
+casos_complejos_7_2, variable.
+casos_complejos_8_1,This text is
+casos_complejos_8_2,red
+casos_complejos_8_3,.
+casos_complejos_9_1,This is a lone brace
+casos_complejos_9_2, in a sentence.
+quests_1_1,First Quest
+quests_2_1,Second Quest
+double_escaped_1_1,\\
+achievements_1_1,The Fool
+achievements_2_1,The Magician

@@ -10,10 +10,11 @@ ARCHIVO_REFERENCIAS = os.path.join(DIR_TEXTO, 'referencias.txt')
 
 # Regex para encontrar el bloque completo de "English", escapado o no, y capturar el contenido interior.
 # Grupo 1: Bloque completo (p.ej., "English":"texto" o \"English\":\"texto\")
-# Grupo 2: Contenido interior (p.ej., texto)
-REGEX_EXTRACCION_GENERAL = re.compile(r'(\\"English\\":\\"(.*?)\\"|(?:"English":"((?:[^"]|\\")*)"))')
+# Grupo 2: Contenido interior de la parte escapada (si coincide)
+# Grupo 3: Contenido interior de la parte no escapada (si coincide)
+REGEX_EXTRACCION_GENERAL = re.compile(r'(\\"English\\":\\"(.*?)\\"|(?:"English":"(.*?)"))')
 
-# Regex para dividir el texto por marcadores y variables.
+# Regex para dividir el texto por marcadores de formato y variables.
 MARCADORES = [
     r'<color=#[a-fA-F0-9]{6}>', r'</color>',
     r'</?(?:T|A|R|B|P|R2|i|W|G|Y)>',
@@ -22,11 +23,17 @@ MARCADORES = [
 ]
 REGEX_DIVISION_MARCADORES = re.compile(f"({'|'.join(MARCADORES)})")
 
-# Regex para excluir textos que son solo una variable
+# Regex para excluir textos que son solo una variable.
 REGEX_EXCLUSION_VARIABLE = re.compile(r'^\s*\{[a-zA-Z0-9_]+\}\s*$')
 # --- FIN DE CONFIGURACIÓN ---
 
 def procesar_texto_interior(id_base, texto_interior):
+    """Procesa el contenido de un campo "English", lo divide y genera partes/plantilla."""
+    # Nueva regla: si el contenido está envuelto en \\", se eliminan usando una regex más precisa.
+    match_escaped = re.match(r'^\\"(.*)\\"$', texto_interior, re.DOTALL)
+    if match_escaped:
+        texto_interior = match_escaped.group(1)
+
     if REGEX_EXCLUSION_VARIABLE.match(texto_interior):
         return [], None
 
@@ -70,7 +77,6 @@ def main():
 
             for i, match in enumerate(REGEX_EXTRACCION_GENERAL.finditer(content)):
                 bloque_completo = match.group(1)
-                # El contenido puede estar en el grupo 2 (escapado) o 3 (no escapado)
                 texto_interior = match.group(2) if match.group(2) is not None else match.group(3)
 
                 id_base = f"{os.path.splitext(filename)[0]}_{i+1}"
@@ -78,12 +84,10 @@ def main():
                 partes_csv, sub_plantilla = procesar_texto_interior(id_base, texto_interior)
 
                 if sub_plantilla is not None:
-                    # Construir la plantilla final reemplazando el texto interior con la sub-plantilla
                     plantilla_final = bloque_completo.replace(texto_interior, sub_plantilla, 1)
                     extracciones_csv.extend(partes_csv)
                     referencias_plantillas.append(f"{id_base}|{filepath}|{plantilla_final}")
                 else:
-                    # Si no hay nada que traducir, la plantilla es el bloque completo
                     referencias_plantillas.append(f"{id_base}|{filepath}|{bloque_completo}")
 
         except Exception as e:

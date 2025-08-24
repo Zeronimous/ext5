@@ -9,5 +9,6 @@ casos_complejos_8|ingles/casos_complejos.txt|"English":"##0##<color=#ff003c>##1#
 casos_complejos_9|ingles/casos_complejos.txt|"English":"##0##{think1}##1##"
 quests_1|ingles/quests.txt|\"English\":\"##0##\"
 quests_2|ingles/quests.txt|\"English\":\"##0##\"
+double_escaped_1|ingles/double_escaped.txt|"English":"##0##"
 achievements_1|ingles/achievements.txt|\"English\":\"##0##\"
 achievements_2|ingles/achievements.txt|\"English\":\"##0##\"
