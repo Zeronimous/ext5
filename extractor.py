@@ -29,8 +29,9 @@ REGEX_EXCLUSION_VARIABLE = re.compile(r'^\s*\{[a-zA-Z0-9_]+\}\s*$')
 
 def procesar_texto_interior(id_base, texto_interior):
     """Procesa el contenido de un campo "English", lo divide y genera partes/plantilla."""
-    # Nueva regla: si el contenido está envuelto en \\", se eliminan usando una regex más precisa.
-    match_escaped = re.match(r'^\\"(.*)\\"$', texto_interior, re.DOTALL)
+    # Nueva regla: si el contenido está envuelto en \\", se eliminan.
+    # Se buscan dos barras invertidas literales seguidas de una comilla.
+    match_escaped = re.match(r'^\\\\"(.*)\\\\"$', texto_interior, re.DOTALL)
     if match_escaped:
         texto_interior = match_escaped.group(1)
 
